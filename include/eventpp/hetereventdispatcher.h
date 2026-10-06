@@ -93,7 +93,7 @@ public:
 		eventCallbackListMap(),
 		listenerMutex()
 	{
-		std::lock_guard<Mutex> lockGuard(other.listenerMutex);
+		ListenerReadLock lockGuard(other.listenerMutex);
 
 		eventCallbackListMap = other.eventCallbackListMap;
 	}
@@ -103,7 +103,7 @@ public:
 		eventCallbackListMap(),
 		listenerMutex()
 	{
-		std::lock_guard<Mutex> lockGuard(other.listenerMutex);
+		ListenerWriteLock lockGuard(other.listenerMutex);
 
 		eventCallbackListMap = std::move(other.eventCallbackListMap);
 	}
@@ -111,7 +111,7 @@ public:
 	HeterEventDispatcherBase & operator = (const HeterEventDispatcherBase & other)
 	{
 		if(this != &other) {
-			DualLockGuard<Mutex> lockGuard(listenerMutex, other.listenerMutex);
+			DualLockGuard<ListenerMutex> lockGuard(listenerMutex, other.listenerMutex);
 
 			eventCallbackListMap = other.eventCallbackListMap;
 		}
@@ -121,7 +121,7 @@ public:
 	HeterEventDispatcherBase & operator = (HeterEventDispatcherBase && other) noexcept
 	{
 		if(this != &other) {
-			DualLockGuard<Mutex> lockGuard(listenerMutex, other.listenerMutex);
+			DualLockGuard<ListenerMutex> lockGuard(listenerMutex, other.listenerMutex);
 
 			eventCallbackListMap = std::move(other.eventCallbackListMap);
 		}
@@ -131,7 +131,7 @@ public:
 	void swap(HeterEventDispatcherBase & other) noexcept {
 		using std::swap;
 
-		DualLockGuard<Mutex> lockGuard(listenerMutex, other.listenerMutex);
+		DualLockGuard<ListenerMutex> lockGuard(listenerMutex, other.listenerMutex);
 
 		swap(eventCallbackListMap, other.eventCallbackListMap);
 	}
