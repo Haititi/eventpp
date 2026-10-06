@@ -13,6 +13,7 @@ set(SRC_TEST
 	test_queue_multithread.cpp
 	test_queue_ordered_list.cpp
 	test_queue_spinlock_wait.cpp
+	test_queue_exception.cpp
 	test_hetercallbacklist_basic.cpp
 	test_hetercallbacklist_ctors.cpp
 	test_hetercallbacklist_multithread.cpp
