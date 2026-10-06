@@ -169,6 +169,14 @@ Invoke each callbacks in the callback list.
 The callbacks are called with arguments `args`.  
 The callbacks are called in the thread same as the caller of `operator()`.
 
+#### invokeIfAny
+
+```c++
+bool invokeIfAny(Args ...args) const;
+```  
+Same as `operator()`, but returns `true` if any callback was invoked, `false` if the callback list is empty.  
+Unlike checking `empty()` before `operator()`, the result is exact in multi threading, because it's decided while the callbacks are iterated.
+
 <a id="a2_3"></a>
 ## Nested callback safety
 1. If a callback adds another callback to the callback list during an invoking, the new callback is guaranteed not to be triggered within the same invoking. This is guaranteed by an unsigned 64 bits integer counter. This rule will be broken if the counter is overflowed to zero in an invoking, but this rule will continue working on the subsequent invoking.  

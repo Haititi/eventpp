@@ -289,24 +289,46 @@ public:
 		});
 	}
 
-// Clang defines __GNUC__ as 4 for GCC compatibility, but it supports parameter pack capture in lambda,
-// so it must use the main code, not the GCC 4 patch below.
-#if !defined(__GNUC__) || defined(__clang__) || __GNUC__ >= 5
 	void operator() (Args ...args) const
 	{
 		if(! CanStartInvoking::canStartInvoking(args...)) {
 			return;
 		}
 
-		forEachIf([&args...](Callback & callback) -> bool {
+		(void)doInvoke(args...);
+	}
+
+	// Same as operator(), but returns true if any callback was invoked,
+	// false if the list is empty or canStartInvoking returns false.
+	bool invokeIfAny(Args ...args) const
+	{
+		if(! CanStartInvoking::canStartInvoking(args...)) {
+			return false;
+		}
+
+		return doInvoke(args...);
+	}
+
+private:
+// Clang defines __GNUC__ as 4 for GCC compatibility, but it supports parameter pack capture in lambda,
+// so it must use the main code, not the GCC 4 patch below.
+#if !defined(__GNUC__) || defined(__clang__) || __GNUC__ >= 5
+	bool doInvoke(Args & ...args) const
+	{
+		bool invoked = false;
+
+		forEachIf([&args..., &invoked](Callback & callback) -> bool {
 			// We can't use std::forward here, because if we use std::forward,
 			// for arg that is passed by value, and the callback prototype accepts it by value,
 			// std::forward will move it and may cause the original value invalid.
 			// That happens on any value-to-value passing, no matter the callback moves it or not.
 
+			invoked = true;
 			callback(args...);
 			return CanContinueInvoking::canContinueInvoking(args...);
 		});
+
+		return invoked;
 	}
 #else
 	// This is a patch version for GCC 4. It inlines the unrolled doForEachIf.
@@ -314,12 +336,9 @@ public:
 	// https://github.com/wqking/eventpp/issues/19
 	// This is a compromised patch for GCC 4, it may be not maintained or updated unless there are bugs.
 	// We don't use the patch as main code because the patch generates longer code, and duplicated with doForEachIf.
-	void operator() (Args ...args) const
+	bool doInvoke(Args & ...args) const
 	{
-		if(! CanStartInvoking::canStartInvoking(args...)) {
-			return;
-		}
-
+		bool invoked = false;
 		NodePtr node;
 
 		{
@@ -331,6 +350,7 @@ public:
 
 		while(node) {
 			if(node->counter != removedCounter && counter >= node->counter) {
+				invoked = true;
 				node->callback(args...);
 				if(! CanContinueInvoking::canContinueInvoking(args...)) {
 					break;
@@ -342,10 +362,11 @@ public:
 				node = node->next;
 			}
 		}
+
+		return invoked;
 	}
 #endif
 
-private:
 	template <typename F>
 	bool doForEachIf(F && f) const
 	{

@@ -9,6 +9,7 @@ set(SRC_TEST
 	test_dispatcher_ctors.cpp
 	test_dispatcher_multithread.cpp
 	test_dispatcher_sharedmutex.cpp
+	test_dispatcher_dispatchifany.cpp
 	test_queue_basic.cpp
 	test_queue_ctors.cpp
 	test_queue_multithread.cpp
