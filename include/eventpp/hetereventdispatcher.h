@@ -73,6 +73,12 @@ public:
 	using Event = EventType_;
 	using Mutex = typename Threading::Mutex;
 
+protected:
+	// If Threading has SharedMutex, use it for the map and lock shared for lookup, otherwise use Mutex.
+	using ListenerMutex = typename SelectListenerMutex<Threading, HasTypeSharedMutex<Threading>::value>::Type;
+	using ListenerReadLock = typename SelectListenerReadLock<Threading, HasTypeSharedMutex<Threading>::value>::Type;
+	using ListenerWriteLock = std::lock_guard<ListenerMutex>;
+
 public:
 	HeterEventDispatcherBase()
 		:
@@ -133,7 +139,7 @@ public:
 	template <typename C>
 	Handle appendListener(const Event & event, const C & callback)
 	{
-		std::lock_guard<Mutex> lockGuard(listenerMutex);
+		ListenerWriteLock lockGuard(listenerMutex);
 
 		return eventCallbackListMap[event].append(callback);
 	}
@@ -141,7 +147,7 @@ public:
 	template <typename C>
 	Handle prependListener(const Event & event, const C & callback)
 	{
-		std::lock_guard<Mutex> lockGuard(listenerMutex);
+		ListenerWriteLock lockGuard(listenerMutex);
 
 		return eventCallbackListMap[event].prepend(callback);
 	}
@@ -149,7 +155,7 @@ public:
 	template <typename C>
 	Handle insertListener(const Event & event, const C & callback, const Handle & before)
 	{
-		std::lock_guard<Mutex> lockGuard(listenerMutex);
+		ListenerWriteLock lockGuard(listenerMutex);
 
 		return eventCallbackListMap[event].insert(callback, before);
 	}
@@ -268,11 +274,12 @@ protected:
 
 private:
 	// template helper to avoid code duplication in doFindCallableList
+	// Lock shared is enough because the map is only read here, and the map never erases items.
 	template <typename T>
 	static auto doFindCallableListHelper(T * self, const Event & e)
 		-> typename std::conditional<std::is_const<T>::value, const CallbackList_ *, CallbackList_ *>::type
 	{
-		std::lock_guard<Mutex> lockGuard(self->listenerMutex);
+		ListenerReadLock lockGuard(self->listenerMutex);
 
 		auto it = self->eventCallbackListMap.find(e);
 		if(it != self->eventCallbackListMap.end()) {
@@ -304,7 +311,7 @@ private:
 
 private:
 	Map eventCallbackListMap;
-	mutable Mutex listenerMutex;
+	mutable ListenerMutex listenerMutex;
 };
 
 } //namespace internal_

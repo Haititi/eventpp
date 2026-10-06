@@ -25,6 +25,12 @@
 #include <unordered_map>
 #include <list>
 
+// std::shared_mutex requires C++17.
+#if (defined(_MSVC_LANG) && _MSVC_LANG >= 201703L) || (! defined(_MSVC_LANG) && __cplusplus >= 201703L)
+#define EVENTPP_HAS_STD_SHARED_MUTEX 1
+#include <shared_mutex>
+#endif
+
 namespace eventpp {
 
 struct TagHomo {};
@@ -99,6 +105,15 @@ struct MultipleThreading
 
 	using ConditionVariable = std::condition_variable;
 };
+
+#ifdef EVENTPP_HAS_STD_SHARED_MUTEX
+// Same as MultipleThreading, but the dispatcher map is locked shared for dispatching.
+// Useful when many threads dispatch different events concurrently.
+struct MultipleThreadingSharedMutex : public MultipleThreading
+{
+	using SharedMutex = std::shared_mutex;
+};
+#endif
 
 struct SingleThreading
 {
